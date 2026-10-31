@@ -1,0 +1,20 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+
+const base = import.meta.env.BASE_URL;
+const posts = (await getCollection('posts', (p) => !p.data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+<Base title="System Design Notes">
+  <h1>Posts</h1>
+  <ul>
+    {posts.map((p) => (
+      <li>
+        <a href={`${base}posts/${p.id}/`}>{p.data.title}</a>
+        <small> — {p.data.date.toISOString().slice(0, 10)}</small>
+        <br /><small>{p.data.description}</small>
+      </li>
+    ))}
+  </ul>
+</Base>
