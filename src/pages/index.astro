@@ -5,15 +5,22 @@ import Base from '../layouts/Base.astro';
 const base = import.meta.env.BASE_URL;
 const posts = (await getCollection('posts', (p) => !p.data.draft))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const readingTime = (body = '') => Math.max(1, Math.round(body.split(/\s+/).length / 200));
+const fmt = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 ---
 <Base title="System Design Notes">
-  <h1>Posts</h1>
-  <ul>
+  <h1>System Design Notes</h1>
+  <p class="intro">Short, practical write-ups on designing systems that scale.</p>
+  <ul class="cards">
     {posts.map((p) => (
-      <li>
-        <a href={`${base}posts/${p.id}/`}>{p.data.title}</a>
-        <small> — {p.data.date.toISOString().slice(0, 10)}</small>
-        <br /><small>{p.data.description}</small>
+      <li class="card">
+        <a href={`${base}posts/${p.id}/`}>
+          <h2>{p.data.title}</h2>
+          <span class="meta">
+            <time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time> · {readingTime(p.body)} min read
+          </span>
+          <p>{p.data.description}</p>
+        </a>
       </li>
     ))}
   </ul>
