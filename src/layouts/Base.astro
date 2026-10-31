@@ -48,32 +48,6 @@ const isAbout = path.replace(/\/$/, '').endsWith('/about');
     </footer>
     <script>
       const root = document.documentElement;
-      const post = document.querySelector('article.post');
-
-      // Post page: reading time + table of contents (built from rendered h2/h3)
-      if (post) {
-        const words = (post.textContent ?? '').trim().split(/\s+/).length;
-        const meta = post.querySelector(':scope > small');
-        if (meta) meta.textContent += ` · ${Math.max(1, Math.round(words / 200))} min read`;
-        const heads = [...post.querySelectorAll('h2[id], h3[id]')];
-        if (heads.length > 1) {
-          const toc = document.createElement('nav');
-          toc.className = 'toc';
-          toc.setAttribute('aria-label', 'Table of contents');
-          toc.innerHTML = '<details open><summary>On this page</summary><ol></ol></details>';
-          const ol = toc.querySelector('ol')!;
-          heads.forEach((h) => {
-            const li = document.createElement('li');
-            li.className = h.tagName.toLowerCase();
-            const a = document.createElement('a');
-            a.href = `#${h.id}`;
-            a.textContent = h.textContent;
-            li.append(a);
-            ol.append(li);
-          });
-          (meta ?? post.querySelector('h1'))?.after(toc);
-        }
-      }
 
       // Wrap tables so they scroll on mobile
       document.querySelectorAll('main table').forEach((t) => {

@@ -59,7 +59,7 @@ li { margin: .25rem 0; }
 .meta { font-size: .875rem; color: var(--muted); }
 
 /* post */
-.post > small { display: block; font-size: .9rem; color: var(--muted); margin-bottom: 1.5rem; }
+.post-meta { display: block; font-size: .9rem; color: var(--muted); margin-bottom: 1.5rem; }
 .toc { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: .75rem 1.1rem; margin-bottom: 2rem; font-size: .95rem; }
 .toc summary { cursor: pointer; font-weight: 600; }
 .toc ol { list-style: none; margin: .6rem 0 .2rem; padding: 0; }
@@ -72,9 +72,16 @@ li { margin: .25rem 0; }
 code { font-family: var(--mono); font-size: .88em; }
 :not(pre) > code { background: var(--code-inline); padding: .15em .4em; border-radius: 5px; }
 .code-wrap { position: relative; margin: 1.5rem 0; }
+/* shiki dual themes (defaultColor: false emits --shiki-light / --shiki-dark) */
+.astro-code, .astro-code span { color: var(--shiki-light); background-color: var(--shiki-light-bg); }
+:root[data-theme="dark"] .astro-code, :root[data-theme="dark"] .astro-code span { color: var(--shiki-dark); background-color: var(--shiki-dark-bg); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .astro-code, :root:not([data-theme="light"]) .astro-code span { color: var(--shiki-dark); background-color: var(--shiki-dark-bg); }
+}
+.astro-code span { background-color: transparent !important; }
 pre.astro-code { margin: 0; padding: 1.1rem 1.2rem; overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); font-size: .88rem; line-height: 1.6; }
 pre.astro-code code { font-size: inherit; }
-.copy-btn { position: absolute; top: .5rem; right: .5rem; padding: .2rem .6rem; font: 500 .75rem var(--font); color: #c9d1d9; background: #ffffff1a; border: 1px solid #ffffff2e; border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .15s; }
+.copy-btn { position: absolute; top: .5rem; right: .5rem; padding: .2rem .6rem; font: 500 .75rem var(--font); color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; opacity: 0; transition: opacity .15s; }
 .code-wrap:hover .copy-btn, .copy-btn:focus-visible { opacity: 1; }
 @media (hover: none) { .copy-btn { opacity: 1; } }
 

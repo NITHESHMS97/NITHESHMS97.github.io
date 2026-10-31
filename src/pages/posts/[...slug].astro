@@ -8,10 +8,24 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const minutes = Math.max(1, Math.round((post.body ?? '').split(/\s+/).length / 200));
+const date = post.data.date;
+const fmt = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
 ---
 <Base title={post.data.title} description={post.data.description}>
   <h1>{post.data.title}</h1>
-  <small>{post.data.date.toISOString().slice(0, 10)}</small>
+  <span class="post-meta"><time datetime={date.toISOString()}>{fmt}</time> · {minutes} min read</span>
+  {toc.length > 1 && (
+    <nav class="toc" aria-label="Table of contents">
+      <details open>
+        <summary>On this page</summary>
+        <ol>
+          {toc.map((h) => <li class={`h${h.depth}`}><a href={`#${h.slug}`}>{h.text}</a></li>)}
+        </ol>
+      </details>
+    </nav>
+  )}
   <Content />
 </Base>
