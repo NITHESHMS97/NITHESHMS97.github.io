@@ -1,5 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
+
+// Dev-only: no route is generated for production builds, so /editor/ is never deployed.
+export function getStaticPaths() {
+  return import.meta.env.DEV ? [{ params: { editor: 'editor' } }] : [];
+}
 ---
 <Base title="Editor" description="Create and edit posts" noindex>
   <div class="editor">

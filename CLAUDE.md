@@ -14,7 +14,7 @@ Astro static blog deployed to GitHub Pages (push to `main` triggers `.github/wor
 
 ## Posts
 - Folders under `src/content/posts/` form the tree (`series/part-1.md`). Optional `order` frontmatter sorts siblings; prev/next links follow tree order.
-- Posts can also be created/edited at `/editor/` (commits via GitHub API using a token kept in the browser's localStorage). Keep the editor's frontmatter fields in sync with `src/content.config.ts`.
+- Posts can also be created/edited at `/editor/`, which exists only under `npm run dev` (never deployed; its nav/Edit links are `import.meta.env.DEV`-gated). It commits via GitHub API using a token kept in the browser's localStorage). Keep the editor's frontmatter fields in sync with `src/content.config.ts`.
 - Markdown in `src/content/posts/*.md`, frontmatter: `title`, `description`, `date` (required), `draft` (optional).
 - Use `##` / `###` for sections (they feed the table of contents); the page title is the `h1`, so don't add another `#`.
 - Diagrams: fenced ```mermaid blocks (rendered client-side, themed automatically).

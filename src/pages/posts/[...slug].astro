@@ -35,7 +35,7 @@ const file = post.filePath ?? `src/content/posts/${post.id}.md`;
         <p class="meta">
           <time datetime={date.toISOString()}>{formatDate(date)}</time>
           <span class="pill">{readingTime(post.body)} min read</span>
-          <a class="edit-link" href={`${base}editor/?path=${encodeURIComponent(file)}`}>Edit</a>
+          {import.meta.env.DEV && <a class="edit-link" href={`${base}editor/?path=${encodeURIComponent(file)}`}>Edit</a>}
         </p>
       </header>
       <div class="prose"><Content /></div>
