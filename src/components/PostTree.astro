@@ -1,0 +1,26 @@
+---
+import Self from './PostTree.astro';
+import type { TreeNode } from '../lib/posts';
+
+const { nodes, currentId = '', openAll = false } = Astro.props as { nodes: TreeNode[]; currentId?: string; openAll?: boolean };
+const base = import.meta.env.BASE_URL;
+const has = (n: TreeNode): boolean => n.post?.id === currentId || n.children.some(has);
+// a post that is also a folder gets an "Overview" entry alongside its children
+const kids = (n: TreeNode): TreeNode[] => (n.post ? [{ ...n, label: 'Overview', children: [] }, ...n.children] : n.children);
+---
+<ul class="tree">
+  {nodes.map((n) =>
+    n.children.length ? (
+      <li>
+        <details open={openAll || has(n)}>
+          <summary>{n.label}</summary>
+          <Self nodes={kids(n)} currentId={currentId} openAll={openAll} />
+        </details>
+      </li>
+    ) : (
+      <li>
+        <a href={`${base}posts/${n.post!.id}/`} aria-current={n.post!.id === currentId ? 'page' : undefined}>{n.label}</a>
+      </li>
+    )
+  )}
+</ul>

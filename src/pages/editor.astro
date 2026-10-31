@@ -1,0 +1,170 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Editor" description="Create and edit posts" noindex>
+  <div class="editor">
+    <h1>Post editor</h1>
+    <p class="intro">Saves commit straight to GitHub, which redeploys the site in about a minute.</p>
+
+    <div class="editor-grid">
+      <aside class="panel">
+        <h2 class="section-title">Posts</h2>
+        <button type="button" class="btn" id="new">+ New post</button>
+        <ul class="tree" id="list"><li class="meta">Loading…</li></ul>
+      </aside>
+
+      <form class="panel" id="form" autocomplete="off">
+        <div class="field-row">
+          <label>Title<input name="title" required /></label>
+          <label>Path (folders make the tree)<input name="path" placeholder="system-design/caching" required /></label>
+        </div>
+        <label>Description<input name="description" required /></label>
+        <div class="field-row">
+          <label>Date<input name="date" type="date" required /></label>
+          <label>Order in tree<input name="order" type="number" placeholder="optional" /></label>
+          <label class="check"><input name="draft" type="checkbox" /> Draft</label>
+        </div>
+        <label>Markdown<textarea name="body" rows="22" spellcheck="true" placeholder="## Section&#10;&#10;Write here. Use ```mermaid for diagrams."></textarea></label>
+        <div class="actions">
+          <button class="btn primary" type="submit">Save &amp; publish</button>
+          <span id="status" class="meta" role="status"></span>
+        </div>
+      </form>
+    </div>
+
+    <details class="panel settings">
+      <summary class="section-title">GitHub connection</summary>
+      <div class="field-row">
+        <label>Repository<input id="repo" /></label>
+        <label>Branch<input id="branch" /></label>
+      </div>
+      <label>Personal access token
+        <input id="token" type="password" placeholder="github_pat_…" />
+      </label>
+      <p class="meta">Create a <a href="https://github.com/settings/personal-access-tokens/new" rel="noopener">fine-grained token</a> limited to this repository with <strong>Contents: Read and write</strong>. It is stored only in this browser's localStorage; anyone with access to this browser can use it.</p>
+    </details>
+  </div>
+
+  <script>
+    const $ = <T extends HTMLElement>(s: string) => document.querySelector<T>(s)!;
+    const form = $<HTMLFormElement>('#form');
+    const status = $('#status');
+    const DIR = 'src/content/posts/';
+    const cfg = { repo: 'NITHESHMS97/NITHESHMS97.github.io', branch: 'main', token: '', ...JSON.parse(localStorage.getItem('editor') ?? '{}') };
+    let sha: string | undefined; // set when editing an existing file
+
+    for (const k of ['repo', 'branch', 'token'] as const) {
+      const el = $<HTMLInputElement>(`#${k}`);
+      el.value = cfg[k];
+      el.addEventListener('input', () => { cfg[k] = el.value.trim(); localStorage.setItem('editor', JSON.stringify(cfg)); });
+    }
+    const say = (msg: string, err = false) => { status.textContent = msg; status.style.color = err ? '#dc2626' : ''; };
+
+    async function gh(path: string, init: RequestInit = {}) {
+      const r = await fetch(`https://api.github.com/repos/${cfg.repo}${path}`, {
+        ...init,
+        headers: { Accept: 'application/vnd.github+json', ...(cfg.token && { Authorization: `Bearer ${cfg.token}` }), ...init.headers },
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(`${r.status} ${data.message ?? r.statusText}`);
+      return data;
+    }
+    const b64 = (s: string) => btoa(Array.from(new TextEncoder().encode(s), (b) => String.fromCharCode(b)).join(''));
+    const unb64 = (s: string) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, '')), (c) => c.charCodeAt(0)));
+    const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement | HTMLTextAreaElement;
+
+    function reset() {
+      form.reset();
+      sha = undefined;
+      field('path').readOnly = false;
+      field('date').value = new Date().toISOString().slice(0, 10);
+      say('');
+    }
+
+    async function loadList() {
+      const list = $('#list');
+      try {
+        const { tree } = await gh(`/git/trees/${cfg.branch}?recursive=1`);
+        const files: string[] = tree.map((t: any) => t.path).filter((p: string) => p.startsWith(DIR) && p.endsWith('.md')).sort();
+        list.innerHTML = '';
+        files.forEach((f) => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = '#';
+          a.textContent = f.slice(DIR.length, -3);
+          a.addEventListener('click', (e) => { e.preventDefault(); open(f); });
+          li.append(a);
+          list.append(li);
+        });
+      } catch (e: any) {
+        list.innerHTML = `<li class="meta">Could not list posts (${e.message}). Check the connection settings below.</li>`;
+      }
+    }
+
+    async function open(file: string) {
+      say('Loading…');
+      try {
+        const f = await gh(`/contents/${file.split('/').map(encodeURIComponent).join('/')}?ref=${cfg.branch}`);
+        const m = unb64(f.content).match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+        const fm: Record<string, string> = {};
+        m?.[1].split(/\r?\n/).forEach((l) => {
+          const i = l.indexOf(':');
+          if (i < 1) return;
+          let v = l.slice(i + 1).trim();
+          if (/^(".*"|'.*')$/.test(v)) { try { v = JSON.parse(v); } catch { v = v.slice(1, -1); } }
+          fm[l.slice(0, i).trim()] = v;
+        });
+        reset();
+        sha = f.sha;
+        field('path').value = file.slice(DIR.length, -3);
+        field('path').readOnly = true;
+        field('title').value = fm.title ?? '';
+        field('description').value = fm.description ?? '';
+        field('date').value = (fm.date ?? '').slice(0, 10);
+        field('order').value = fm.order ?? '';
+        (field('draft') as HTMLInputElement).checked = fm.draft === 'true';
+        field('body').value = (m?.[2] ?? '').replace(/^\n+/, '');
+        say(`Editing ${file}`);
+      } catch (e: any) { say(e.message, true); }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!cfg.token) return say('Add a token under "GitHub connection" first.', true);
+      const slug = field('path').value.toLowerCase().replace(/\.md$/, '').replace(/[^a-z0-9/]+/g, '-').replace(/\/+/g, '/').replace(/^[-/]+|[-/]+$/g, '');
+      if (!slug) return say('Path is required.', true);
+      const order = field('order').value;
+      const front = [
+        `title: ${JSON.stringify(field('title').value)}`,
+        `description: ${JSON.stringify(field('description').value)}`,
+        `date: ${field('date').value}`,
+        ...(order ? [`order: ${order}`] : []),
+        ...((field('draft') as HTMLInputElement).checked ? ['draft: true'] : []),
+      ].join('\n');
+      const file = `${DIR}${slug}.md`;
+      say('Saving…');
+      try {
+        const res = await gh(`/contents/${file.split('/').map(encodeURIComponent).join('/')}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            message: `${sha ? 'Edit' : 'Add'} post: ${field('title').value}`,
+            content: b64(`---\n${front}\n---\n\n${field('body').value.trim()}\n`),
+            branch: cfg.branch,
+            ...(sha && { sha }),
+          }),
+        });
+        sha = res.content.sha;
+        field('path').value = slug;
+        field('path').readOnly = true;
+        say('Saved. Deploying — live in about a minute.');
+        loadList();
+      } catch (err: any) { say(err.message, true); }
+    });
+
+    $('#new').addEventListener('click', reset);
+    reset();
+    loadList();
+    const p = new URLSearchParams(location.search).get('path');
+    if (p) open(p);
+  </script>
+</Base>

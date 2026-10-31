@@ -1,11 +1,13 @@
 ---
 import '../styles/global.css';
 
-const { title, description = 'System design notes' } = Astro.props;
+const { title, description = 'System design notes', noindex = false } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const path = Astro.url.pathname;
 const isPost = path.includes('/posts/');
-const isAbout = path.replace(/\/$/, '').endsWith('/about');
+const section = path.replace(/\/$/, '').split('/').pop();
+const isAbout = section === 'about';
+const isEditor = section === 'editor';
 ---
 <!doctype html>
 <html lang="en">
@@ -14,6 +16,7 @@ const isAbout = path.replace(/\/$/, '').endsWith('/about');
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
     <script is:inline>
       // set theme before paint to avoid a flash
       (() => {
@@ -25,11 +28,12 @@ const isAbout = path.replace(/\/$/, '').endsWith('/about');
   </head>
   <body>
     <header class="site-header">
-      <div class="wrap">
+      <div class="container">
         <a class="brand" href={base}>System Design Notes</a>
         <nav>
-          <a href={base} aria-current={!isPost && !isAbout ? 'page' : undefined}>Home</a>
+          <a href={base} aria-current={!isPost && !isAbout && !isEditor ? 'page' : undefined}>Home</a>
           <a href={`${base}about/`} aria-current={isAbout ? 'page' : undefined}>About</a>
+          <a href={`${base}editor/`} aria-current={isEditor ? 'page' : undefined}>Write</a>
         </nav>
         <button class="theme-toggle" type="button" aria-label="Toggle dark mode">
           <svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -37,11 +41,11 @@ const isAbout = path.replace(/\/$/, '').endsWith('/about');
         </button>
       </div>
     </header>
-    <main class="wrap">
-      {isPost ? <article class="post"><slot /></article> : <slot />}
+    <main class="container">
+      <slot />
     </main>
     <footer class="site-footer">
-      <div class="wrap">
+      <div class="container">
         <span>© {new Date().getFullYear()} System Design Notes</span>
         <a href="https://github.com/NITHESHMS97" rel="noopener">GitHub</a>
       </div>
@@ -94,6 +98,19 @@ const isAbout = path.replace(/\/$/, '').endsWith('/about');
           d.textContent = d.dataset.src!;
         });
         await mermaid.run({ nodes: diagrams });
+      }
+
+      // Highlight the current section in the table of contents
+      const tocLinks = new Map([...document.querySelectorAll<HTMLAnchorElement>('.toc a')].map((a) => [a.hash.slice(1), a]));
+      if (tocLinks.size) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (!e.isIntersecting) return;
+            tocLinks.forEach((a) => a.removeAttribute('aria-current'));
+            tocLinks.get(e.target.id)?.setAttribute('aria-current', 'true');
+          });
+        }, { rootMargin: '-80px 0px -70% 0px' });
+        tocLinks.forEach((_, id) => { const h = document.getElementById(id); if (h) io.observe(h); });
       }
 
       document.querySelector('.theme-toggle')!.addEventListener('click', () => {
